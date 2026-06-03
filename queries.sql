@@ -4,7 +4,6 @@
 SET search_path TO supermarket_chain;
 
 
-
 -- DATABASE STRUCTURE OVERVIEW
 
 -- Query S1: Show all branches with their location details.
@@ -76,8 +75,8 @@ ORDER BY num_products DESC;
 
 
 
-
 -- BASIC LEVEL
+
 
 -- Query 1: Show all customers who currently have more than 500 accumulated loyalty points.
 SELECT loyalty_card_id, first_name, last_name, accumulated_points
@@ -97,23 +96,27 @@ FROM products
 WHERE category LIKE 'Baby Toiletries%'
 ORDER BY standard_price DESC, product_code;
 
--- Query 4: Show all employees with their full department name
--- (introduces JOIN on a single table pair)
-SELECT e.employee_code, e.first_name, e.last_name, e.role,
-       e.branch_code, d.name AS department_name
+-- Query 4: Show all employees with their full department name.
+SELECT e.employee_code,
+       e.first_name,
+       e.last_name,
+       e.role,
+       e.branch_code,
+       d.name AS department_name
 FROM employees e
-INNER JOIN departments d
-    ON e.department_code = d.department_code
+INNER JOIN departments d ON e.department_code = d.department_code
 ORDER BY e.branch_code, d.name, e.last_name;
 
 -- Query 5: Show products available in a specific branch (branch_code = 1),
--- with their local price compared to the standard price (introduces JOIN between products and availability).
-SELECT p.product_code, p.category, p.brand,
-       p.standard_price, a.local_price,
+-- with their local price compared to the standard price.
+SELECT p.product_code,
+       p.category,
+       p.brand,
+       p.standard_price,
+       a.local_price,
        (a.local_price - p.standard_price) AS price_difference
 FROM products p
-INNER JOIN availability a
-    ON p.product_code = a.product_code
+INNER JOIN availability a ON p.product_code = a.product_code
 WHERE a.branch_code = 1
 ORDER BY price_difference DESC, p.category;
 
@@ -122,16 +125,19 @@ ORDER BY price_difference DESC, p.category;
 
 -- INTERMEDIATE LEVEL
 
--- Query 6: Show each employee together with the branch city where the employee works.
-SELECT e.employee_code,
-       e.first_name,
-       e.last_name,
-       e.role,
-       b.branch_code,
-       b.city
-FROM employees e INNER JOIN branches b
-     ON e.branch_code = b.branch_code
-ORDER BY b.city, e.last_name, e.first_name;
+
+-- Query 6: Show all products and, where available, their stock quantity in branch 1.
+-- Products not stocked in branch 1 appear with NULL quantity (LEFT OUTER JOIN).
+SELECT p.product_code,
+       p.category,
+       p.brand,
+       p.standard_price,
+       a.quantity,
+       a.local_price
+FROM products p
+LEFT OUTER JOIN availability a ON p.product_code = a.product_code
+                               AND a.branch_code = 1
+ORDER BY a.quantity DESC NULLS LAST, p.category;
 
 -- Query 7: Show each product together with the name of its department.
 SELECT p.product_code,
@@ -141,8 +147,8 @@ SELECT p.product_code,
        d.department_code,
        d.name AS department_name,
        p.standard_price
-FROM products p INNER JOIN departments d
-     ON p.department_code = d.department_code
+FROM products p
+INNER JOIN departments d ON p.department_code = d.department_code
 ORDER BY d.name, p.category, p.product_code;
 
 -- Query 8: Show all customers together with their phone numbers, including customers who do not have any registered phone number (NULL).
@@ -150,31 +156,49 @@ SELECT c.loyalty_card_id,
        c.first_name,
        c.last_name,
        cp.phone_number
-FROM customers c LEFT OUTER JOIN customer_phones cp
-     ON c.loyalty_card_id = cp.loyalty_card_id
+FROM customers c
+LEFT OUTER JOIN customer_phones cp ON c.loyalty_card_id = cp.loyalty_card_id
 ORDER BY c.loyalty_card_id, cp.phone_number;
 
+-- Query 9: Show each employee with branch city and department name (triple JOIN).
+SELECT e.employee_code,
+       e.first_name,
+       e.last_name,
+       e.role,
+       b.city AS branch_city,
+       d.name AS department_name
+FROM employees e
+INNER JOIN branches b    ON e.branch_code    = b.branch_code
+INNER JOIN departments d ON e.department_code = d.department_code
+ORDER BY b.city, d.name, e.last_name;
 
 -- Query 10: Compute the average standard price of products for each department.
 SELECT p.department_code,
        d.name AS department_name,
        AVG(p.standard_price) AS average_standard_price
-FROM products p INNER JOIN departments d
-     ON p.department_code = d.department_code
+FROM products p
+INNER JOIN departments d ON p.department_code = d.department_code
 GROUP BY p.department_code, d.name
 ORDER BY average_standard_price DESC, p.department_code;
 
 -- Query 11: Show only the departments whose average product price is greater than 5.
 SELECT p.department_code,
        d.name AS department_name,
-       AVG(p.standard_price) AS average_standard_price
-FROM products p INNER JOIN departments d
-     ON p.department_code = d.department_code
+       ROUND(AVG(p.standard_price), 2) AS average_standard_price
+FROM products p
+INNER JOIN departments d ON p.department_code = d.department_code
 GROUP BY p.department_code, d.name
 HAVING AVG(p.standard_price) > 5
 ORDER BY average_standard_price DESC;
 
--- Query 12: 
+-- Query 12: Show how many distinct products are available in each branch.
+SELECT b.branch_code,
+       b.city,
+       COUNT(DISTINCT a.product_code) AS num_products_available
+FROM branches b
+INNER JOIN availability a ON b.branch_code = a.branch_code
+GROUP BY b.branch_code, b.city
+ORDER BY num_products_available DESC;
 
 -- Query 13: Show the customers who have at least one registered phone number (IN).
 SELECT loyalty_card_id, first_name, last_name
@@ -200,8 +224,8 @@ ORDER BY standard_price DESC, product_code;
 
 
 
-
 -- ADVANCED LEVEL
+
 
 -- Query 16: Show, for each department, the number of products and the minimum, average, and maximum standard price.
 SELECT p.department_code,
@@ -210,12 +234,14 @@ SELECT p.department_code,
        MIN(p.standard_price) AS minimum_price,
        AVG(p.standard_price) AS average_price,
        MAX(p.standard_price) AS maximum_price
-FROM products p INNER JOIN departments d
-     ON p.department_code = d.department_code
+FROM products p
+INNER JOIN departments d ON p.department_code = d.department_code
 GROUP BY p.department_code, d.name
 ORDER BY number_of_products DESC, p.department_code;
 
--- NON DA NULLA Query 17: Show the branches that currently have no rows in the availability table, using NOT EXISTS.
+-- Query 17: Show the branches that currently have no rows in the availability table, using NOT EXISTS.
+-- Note: with the current dataset all branches have at least one product in availability,
+-- so the result is intentionally empty. The query is logically correct.
 SELECT b.branch_code, b.city, b.street, b.number
 FROM branches b
 WHERE NOT EXISTS (SELECT *
@@ -224,6 +250,7 @@ WHERE NOT EXISTS (SELECT *
 ORDER BY b.branch_code;
 
 -- Query 18: Show the suppliers that currently have no rows in the procurements table, using NOT EXISTS.
+-- Note: if all suppliers have at least one procurement row, the result is intentionally empty.
 SELECT s.supplier_code, s.company_name, s.headquarter_city
 FROM suppliers s
 WHERE NOT EXISTS (SELECT *
@@ -237,10 +264,9 @@ SELECT e.employee_code,
        e.last_name,
        e.role,
        b.city
-FROM employees e INNER JOIN branches b
-     ON e.branch_code = b.branch_code
-WHERE b.city = 'London'
-   OR b.city = 'Manchester'
+FROM employees e
+INNER JOIN branches b ON e.branch_code = b.branch_code
+WHERE b.city IN ('London', 'Manchester')
 ORDER BY b.city, e.last_name, e.first_name;
 
 -- Query 20: Show the most expensive product or products in the whole catalog using ALL.
@@ -257,13 +283,13 @@ WHERE standard_price = (SELECT MIN(standard_price)
                         FROM products)
 ORDER BY product_code;
 
--- Query 22: Show the customers whose accumulated points are greater than the points of at least one customer with zero points, using ANY.
-SELECT loyalty_card_id, first_name, last_name, accumulated_points
-FROM customers
-WHERE accumulated_points > ANY (SELECT accumulated_points
-                                FROM customers
-                                WHERE accumulated_points = 0)
-ORDER BY accumulated_points DESC, loyalty_card_id;
+-- Query 22: Show products whose price is greater than at least one product in the 'Beverages' category, using ANY.
+SELECT product_code, category, brand, standard_price
+FROM products
+WHERE standard_price > ANY (SELECT standard_price
+                            FROM products
+                            WHERE category = 'Beverages')
+ORDER BY standard_price DESC, product_code;
 
 -- Query 23: Show, for every branch and department combination that actually appears in the data, how many employees belong to it.
 SELECT e.branch_code,
@@ -271,10 +297,9 @@ SELECT e.branch_code,
        e.department_code,
        d.name AS department_name,
        COUNT(*) AS number_of_employees
-FROM employees e INNER JOIN branches b
-     ON e.branch_code = b.branch_code
-     INNER JOIN departments d
-     ON e.department_code = d.department_code
+FROM employees e
+INNER JOIN branches b    ON e.branch_code    = b.branch_code
+INNER JOIN departments d ON e.department_code = d.department_code
 GROUP BY e.branch_code, b.city, e.department_code, d.name
 ORDER BY e.branch_code, number_of_employees DESC, e.department_code;
 
@@ -282,8 +307,8 @@ ORDER BY e.branch_code, number_of_employees DESC, e.department_code;
 SELECT e.department_code,
        d.name AS department_name,
        COUNT(*) AS number_of_employees
-FROM employees e INNER JOIN departments d
-     ON e.department_code = d.department_code
+FROM employees e
+INNER JOIN departments d ON e.department_code = d.department_code
 GROUP BY e.department_code, d.name
 HAVING COUNT(*) >= 5
 ORDER BY number_of_employees DESC, e.department_code;
@@ -305,15 +330,15 @@ ORDER BY p.department_code, p.product_code;
 
 
 
-
 -- HIGHER LEVEL
+
 
 -- Query 26: Show the branches whose number of employees is greater than the average number of employees per branch.
 SELECT e.branch_code,
        b.city,
        COUNT(*) AS number_of_employees
-FROM employees e INNER JOIN branches b
-     ON e.branch_code = b.branch_code
+FROM employees e
+INNER JOIN branches b ON e.branch_code = b.branch_code
 GROUP BY e.branch_code, b.city
 HAVING COUNT(*) > (SELECT AVG(branch_employee_count)
                    FROM (SELECT COUNT(*) AS branch_employee_count
@@ -353,11 +378,9 @@ ORDER BY b.branch_code;
 -- Query 30: Show the branches for which there is no department represented by more than one employee.
 SELECT b.branch_code, b.city
 FROM branches b
-WHERE NOT EXISTS (
-    SELECT e.department_code
-    FROM employees e
-    WHERE e.branch_code = b.branch_code
-    GROUP BY e.department_code
-    HAVING COUNT(*) > 1
-)
+WHERE NOT EXISTS (SELECT e.department_code
+                  FROM employees e
+                  WHERE e.branch_code = b.branch_code
+                  GROUP BY e.department_code
+                  HAVING COUNT(*) > 1)
 ORDER BY b.branch_code;
