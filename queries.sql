@@ -6,71 +6,58 @@ SET search_path TO supermarket_chain;
 
 -- DATABASE STRUCTURE OVERVIEW
 
--- Query S1: Show all branches with their location details.
--- (the physical stores of the chain)
+-- Query S1: Show all physical stores with their location details.
 SELECT branch_code, city, street, number, postal_code
 FROM branches
-ORDER BY city;
+ORDER BY branch_code;
 
--- Query S2: Show all departments with their code and name.
--- (the organizational units inside each branch)
+-- Query S2: Show all organizational units inside each branch with their code and name.
 SELECT department_code, name
 FROM departments
 ORDER BY department_code;
 
 -- Query S3: Show all distinct employee roles across the company.
--- (what kind of jobs exist in the chain)
 SELECT DISTINCT role
 FROM employees
 ORDER BY role;
 
--- Query S4: Show all suppliers with their company name and headquarter city.
--- (who supplies the products)
-SELECT supplier_code, company_name, headquarter_city
+-- Query S4: How many employees work in each branch.
+SELECT b.branch_code, b.city, COUNT(e.employee_code) AS num_employees
+FROM branches b INNER JOIN employees e ON b.branch_code = e.branch_code
+GROUP BY b.branch_code, b.city
+ORDER BY branch_code;
+
+-- Query S5: How many employees work in each department (size of each organizational unit)
+SELECT d.name AS department_name, COUNT(e.employee_code) AS num_employees
+FROM departments d INNER JOIN employees e ON d.department_code = e.department_code
+GROUP BY d.department_code, d.name
+ORDER BY num_employees DESC, department_name;
+
+-- Query S6: Show all suppliers with their company name and headquarter city.
+SELECT supplier_code, vat_number, company_name, headquarter_city
 FROM suppliers
 ORDER BY company_name;
 
--- Query S5: Show all product categories available in the database.
--- (what types of products the chain sells)
-SELECT DISTINCT category
-FROM products
-ORDER BY category;
-
--- Query S6: Show all products with category, brand, department, and standard price.
--- (full product catalogue)
-SELECT product_code, category, detail, brand, department_code, standard_price
-FROM products
-ORDER BY category, product_code;
-
 -- Query S7: Show all customers with their loyalty points.
--- (the customer base)
 SELECT loyalty_card_id, first_name, last_name, accumulated_points
 FROM customers
 ORDER BY accumulated_points DESC, last_name ASC;
 
--- Query S8: How many employees work in each branch.
--- (size of each store)
-SELECT b.branch_code, b.city, COUNT(e.employee_code) AS num_employees
-FROM branches b
-INNER JOIN employees e ON b.branch_code = e.branch_code
-GROUP BY b.branch_code, b.city
-ORDER BY num_employees DESC;
+-- Query S8: Show all types of products available in the database.
+SELECT DISTINCT category
+FROM products
+ORDER BY category;
 
--- Query S9: How many employees work in each department.
--- (size of each organizational unit)
-SELECT d.name AS department_name, COUNT(e.employee_code) AS num_employees
-FROM departments d
-INNER JOIN employees e ON d.department_code = e.department_code
-GROUP BY d.department_code, d.name
-ORDER BY num_employees DESC;
+-- Query S9: Show all product catalogue with category, brand, department, and standard price.
+SELECT product_code, category, detail, brand, department_code, standard_price
+FROM products
+ORDER BY category, product_code;
 
--- Query S10: How many products belong to each department.
--- (product distribution across departments)
-SELECT d.name AS department_name, COUNT(p.product_code) AS num_products
-FROM departments d
-INNER JOIN products p ON d.department_code = p.department_code
-GROUP BY d.department_code, d.name
-ORDER BY num_products DESC;
+-- Query S10: How many products belong to each department (product distribution across departments)
+SELECT d.department_code, name, COUNT(product_code) AS num_products
+FROM departments d INNER JOIN products p ON d.department_code = p.department_code
+GROUP BY d.department_code, name
+ORDER BY num_products DESC, name;
 
 
 
@@ -79,24 +66,18 @@ ORDER BY num_products DESC;
 
 
 -- Query 1: Show all customers who currently have more than 500 accumulated loyalty points.
-SELECT loyalty_card_id, first_name, last_name, accumulated_points
+SELECT loyalty_card_id, first_name, last_name, email, accumulated_points
 FROM customers
 WHERE accumulated_points > 500
 ORDER BY accumulated_points DESC, last_name ASC;
 
--- Query 2: Show all employees working at the checkout department.
-SELECT employee_code, first_name, last_name, role, branch_code
-FROM employees
-WHERE department_code = 'CHK'
-ORDER BY branch_code, last_name, first_name;
-
--- Query 3: Show products whose category starts with the word 'Baby Toiletries' (to use LIKE).
+-- Query 2: Show products whose category starts with the word 'Baby Toiletries' (to use LIKE).
 SELECT product_code, category, detail, brand, standard_price
 FROM products
 WHERE category LIKE 'Baby Toiletries%'
 ORDER BY standard_price DESC, product_code;
 
--- Query 4: Show all employees with their full department name.
+-- Query 3: Show all employees with their full department name.
 SELECT e.employee_code,
        e.first_name,
        e.last_name,
@@ -106,6 +87,16 @@ SELECT e.employee_code,
 FROM employees e
 INNER JOIN departments d ON e.department_code = d.department_code
 ORDER BY e.branch_code, d.name, e.last_name;
+
+-- Query 4: Show all employees working at the checkout department.
+SELECT employee_code,
+       first_name,
+       last_name,
+       role,
+       branch_code
+FROM employees
+WHERE department_code = 'CHK'
+ORDER BY branch_code, last_name, first_name;
 
 -- Query 5: Show products available in a specific branch (branch_code = 1),
 -- with their local price compared to the standard price.
@@ -134,10 +125,9 @@ SELECT p.product_code,
        p.standard_price,
        a.quantity,
        a.local_price
-FROM products p
-LEFT OUTER JOIN availability a ON p.product_code = a.product_code
+FROM products p LEFT OUTER JOIN availability a ON p.product_code = a.product_code
                                AND a.branch_code = 1
-ORDER BY a.quantity DESC NULLS LAST, p.category;
+ORDER BY a.quantity DESC, p.category;
 
 -- Query 7: Show each product together with the name of its department.
 SELECT p.product_code,
@@ -156,8 +146,7 @@ SELECT c.loyalty_card_id,
        c.first_name,
        c.last_name,
        cp.phone_number
-FROM customers c
-LEFT OUTER JOIN customer_phones cp ON c.loyalty_card_id = cp.loyalty_card_id
+FROM customers c LEFT OUTER JOIN customer_phones cp ON c.loyalty_card_id = cp.loyalty_card_id
 ORDER BY c.loyalty_card_id, cp.phone_number;
 
 -- Query 9: Show each employee with branch city and department name (triple JOIN).
@@ -167,17 +156,15 @@ SELECT e.employee_code,
        e.role,
        b.city AS branch_city,
        d.name AS department_name
-FROM employees e
-INNER JOIN branches b    ON e.branch_code    = b.branch_code
-INNER JOIN departments d ON e.department_code = d.department_code
+FROM employees e INNER JOIN branches b    ON e.branch_code    = b.branch_code
+                 INNER JOIN departments d ON e.department_code = d.department_code
 ORDER BY b.city, d.name, e.last_name;
 
 -- Query 10: Compute the average standard price of products for each department.
 SELECT p.department_code,
        d.name AS department_name,
        AVG(p.standard_price) AS average_standard_price
-FROM products p
-INNER JOIN departments d ON p.department_code = d.department_code
+FROM products p INNER JOIN departments d ON p.department_code = d.department_code
 GROUP BY p.department_code, d.name
 ORDER BY average_standard_price DESC, p.department_code;
 
@@ -384,3 +371,21 @@ WHERE NOT EXISTS (SELECT e.department_code
                   GROUP BY e.department_code
                   HAVING COUNT(*) > 1)
 ORDER BY b.branch_code;
+
+-- Query 31: Show all department codes that appear in employees or in products, using UNION.
+-- (combines two sources into a single deduplicated list; compare with Q27 INTERSECT and Q28 EXCEPT)
+SELECT department_code, 'employees' AS source
+FROM employees
+UNION
+SELECT department_code, 'products' AS source
+FROM products
+ORDER BY department_code, source;
+
+-- Query 32: Show all cities where the chain has a presence, either as a branch location
+-- or as a supplier headquarter city, using UNION.
+SELECT city AS city_name, 'branch' AS type
+FROM branches
+UNION
+SELECT headquarter_city, 'supplier'
+FROM suppliers
+ORDER BY city_name, type;
