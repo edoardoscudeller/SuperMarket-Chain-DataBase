@@ -19,14 +19,9 @@ SELECT b.branch_code,
        number,
        postal_code,
        COUNT(DISTINCT a.product_code) AS num_products_available
-FROM branches AS b
-LEFT JOIN availability AS a
+FROM branches AS b LEFT JOIN availability AS a
        ON b.branch_code = a.branch_code
-GROUP BY b.branch_code, 
-         city,
-         street,
-         number,
-         postal_code
+GROUP BY b.branch_code, city, street, number, postal_code
 ORDER BY num_products_available DESC, b.branch_code;
 
 -- Query 2: Reparti e distribuzione prodotti
@@ -35,8 +30,7 @@ ORDER BY num_products_available DESC, b.branch_code;
 SELECT d.department_code,
        name AS department_name,
        COUNT(product_code) AS num_products
-FROM departments AS d
-LEFT JOIN products AS p
+FROM departments AS d LEFT JOIN products AS p
        ON d.department_code = p.department_code
 GROUP BY d.department_code, name
 ORDER BY num_products DESC, d.department_code;
@@ -51,8 +45,7 @@ SELECT product_code,
        d.department_code,
        name AS department_name,
        standard_price
-FROM products AS p
-INNER JOIN departments AS d
+FROM products AS p JOIN departments AS d
         ON p.department_code = d.department_code
 ORDER BY name, category, product_code;
 
@@ -89,9 +82,8 @@ SELECT c.loyalty_card_id,
        c.last_name,
        c.email
 FROM customers AS c
-WHERE c.loyalty_card_id NOT IN (
-    SELECT cp.loyalty_card_id
-    FROM customer_phones AS cp
+WHERE c.loyalty_card_id NOT IN ( SELECT cp.loyalty_card_id
+                                 FROM customer_phones AS cp
 )
 ORDER BY c.loyalty_card_id;
 
@@ -103,8 +95,7 @@ SELECT c.loyalty_card_id,
        c.first_name,
        c.last_name,
        cp.phone_number
-FROM customers AS c
-LEFT JOIN customer_phones AS cp
+FROM customers AS c LEFT JOIN customer_phones AS cp
        ON c.loyalty_card_id = cp.loyalty_card_id
 ORDER BY c.loyalty_card_id, cp.phone_number;
 
@@ -123,8 +114,7 @@ SELECT p.product_code,
        branch_code,
        local_price,
        (local_price - p.standard_price) AS price_difference
-FROM products AS p
-INNER JOIN availability AS a
+FROM products AS p JOIN availability AS a
         ON p.product_code = a.product_code
 WHERE branch_code = 1
 ORDER BY price_difference DESC, category, p.product_code;
@@ -148,7 +138,7 @@ SELECT p.product_code,
        detail,
        brand
 FROM products AS p
-WHERE NOT EXISTS ( SELECT 1
+WHERE NOT EXISTS ( SELECT *
                     FROM availability AS a
                     WHERE a.product_code = p.product_code
                     AND a.branch_code = 1
@@ -180,9 +170,9 @@ SELECT employee_code,
        city AS branch_city,
        name AS department_name
 FROM employees AS e
-INNER JOIN branches AS b
+     JOIN branches AS b
         ON e.branch_code = b.branch_code
-INNER JOIN departments AS d
+     JOIN departments AS d
         ON e.department_code = d.department_code
 ORDER BY city, department_name, employee_code, last_name;
 
@@ -197,7 +187,7 @@ SELECT p.department_code,
        AVG(standard_price) AS average_price,
        MAX(standard_price) AS maximum_price
 FROM products AS p
-INNER JOIN departments AS d
+     JOIN departments AS d
         ON p.department_code = d.department_code
 GROUP BY p.department_code, name
 ORDER BY number_of_products DESC, p.department_code;
@@ -210,7 +200,7 @@ SELECT e.department_code,
        d.name AS department_name,
        COUNT(*) AS number_of_employees
 FROM employees AS e
-INNER JOIN departments AS d
+     JOIN departments AS d
         ON e.department_code = d.department_code
 GROUP BY e.department_code, d.name
 HAVING COUNT(*) >= 5
@@ -244,7 +234,7 @@ SELECT e.branch_code,
        b.city,
        COUNT(*) AS number_of_employees
 FROM employees AS e
-INNER JOIN branches AS b
+     JOIN branches AS b
         ON e.branch_code = b.branch_code
 GROUP BY e.branch_code, b.city
 HAVING COUNT(*) > (
