@@ -1,0 +1,42 @@
+# File ausiliari LaTeX generati durante la compilazione
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.bbl
+*.blg
+*.synctex.gz
+*.synctex
+*.fdb_latexmk
+*.fls
+*.maf
+*.mtc
+*.mtc0
+*.mtc1
+*.mtc2
+*.mtc3
+*.mtc4
+*.mtc5
+*.mtc6
+*.stc1
+*.stc2
+*.stc3
+*.stc4
+*.stc5
+*.stc6
+*.nav
+*.snm
+*.vrb
+*.idx
+*.ilg
+*.ind
+*.bcf
+*.run.xml
+
+# Output PDF (tenere solo il sorgente, decommentare se si vuole ignorare il PDF compilato)
+# main.pdf
+
+# macOS
+.DS_Store

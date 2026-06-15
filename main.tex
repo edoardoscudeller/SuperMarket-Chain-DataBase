@@ -1,0 +1,425 @@
+% ============================================================
+% MAIN.TEX — SuperMarket Chain DataBase
+% Stile basato su template tesi UniUD (Edoardo Scudeller)
+% Compilare con: pdflatex -> bibtex -> pdflatex -> pdflatex
+% ============================================================
+
+\documentclass[12pt, a4paper, twoside, openright]{article}
+
+% ------------------------------------------------------------
+% ENCODING E LINGUA
+% ------------------------------------------------------------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+
+% ------------------------------------------------------------
+% LAYOUT E MARGINI
+% ------------------------------------------------------------
+\usepackage[top=2.5cm, bottom=2.5cm, left=3cm, right=2.5cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% ------------------------------------------------------------
+% FONT
+% ------------------------------------------------------------
+\usepackage{lmodern}
+
+% ------------------------------------------------------------
+% GRAFICA E COLORI
+% ------------------------------------------------------------
+\usepackage{graphicx}
+\usepackage[dvipsnames, table]{xcolor}
+\graphicspath{{immagini/}}
+
+% ------------------------------------------------------------
+% TABELLE
+% ------------------------------------------------------------
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{array}
+
+% ------------------------------------------------------------
+% MATEMATICA
+% ------------------------------------------------------------
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+% ------------------------------------------------------------
+% PSEUDOCODICE E ALGORITMI
+% ------------------------------------------------------------
+\usepackage{algorithm}
+\usepackage{algpseudocode}          % stile algorithmicx (algpseudocode)
+\algrenewcommand\algorithmicindent{1.5em}
+\algnewcommand\algorithmicand{\textbf{ and }}
+\algnewcommand\algorithmicor{\textbf{ or }}
+\algnewcommand\algorithmicnot{\textbf{not }}
+\algnewcommand\algorithmictrue{\textbf{true}}
+\algnewcommand\algorithmicfalse{\textbf{false}}
+% Rinomina "Require" e "Ensure" in italiano:
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+% Rinomina la parola "Algorithm" nel float:
+\floatname{algorithm}{Algoritmo}
+
+% ------------------------------------------------------------
+% LISTATI DI CODICE SQL
+% ------------------------------------------------------------
+\usepackage{listings}
+\lstdefinestyle{sqlstyle}{
+    language=SQL,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{Blue}\bfseries,
+    commentstyle=\color{OliveGreen}\itshape,
+    stringstyle=\color{BrickRed},
+    numberstyle=\tiny\color{gray},
+    numbers=left,
+    stepnumber=1,
+    numbersep=8pt,
+    frame=single,
+    frameround=tttt,
+    backgroundcolor=\color{gray!6},
+    breaklines=true,
+    showstringspaces=false,
+    tabsize=4,
+    captionpos=b
+}
+\lstset{style=sqlstyle}
+
+% ------------------------------------------------------------
+% HYPERLINK E PDF METADATA
+% ------------------------------------------------------------
+\usepackage[hidelinks, pdfusetitle]{
+hyperref}
+\hypersetup{
+    pdftitle  = {SuperMarket Chain DataBase},
+    pdfauthor = {-- INSERIRE NOMI --},
+    pdfsubject= {Progetto Basi di Dati},
+    pdfkeywords = {database, SQL, PostgreSQL, supermarket, relational}
+}
+
+% ------------------------------------------------------------
+% INTESTAZIONI E PIÈ DI PAGINA
+% ------------------------------------------------------------
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\thepage}
+\fancyhead[LO]{\nouppercase{\rightmark}}
+\fancyhead[RE]{\nouppercase{\leftmark}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ------------------------------------------------------------
+% INDICE CON MINITOC PER SEZIONE
+% ------------------------------------------------------------
+\usepackage{minitoc}
+\setcounter{tocdepth}{3}
+\setcounter{secnumdepth}{3}
+
+% ------------------------------------------------------------
+% RIFERIMENTI E BIBLIOGRAFIA
+% ------------------------------------------------------------
+\usepackage[numbers, sort&compress]{natbib}
+\bibliographystyle{plainnat}
+
+% ------------------------------------------------------------
+% ALTRI PACCHETTI UTILI
+% ------------------------------------------------------------
+\usepackage{multicol}       % layout multicolonna (usato nel frontespizio)
+\usepackage{enumitem}       % personalizzazione liste
+\usepackage{caption}        % personalizzazione didascalie
+\usepackage{subcaption}     % sotto-figure
+\usepackage{float}          % controllo posizionamento float [H]
+\usepackage{tikz}           % disegni/diagrammi
+\usetikzlibrary{er, positioning, arrows.meta, shapes}
+\usepackage{pdflscape}      % pagine orizzontali con \begin{landscape}
+
+% ============================================================
+% INIZIO DOCUMENTO
+% ============================================================
+\begin{document}
+
+\dominitoc  % inizializza minitoc
+
+% ------------------------------------------------------------
+% FRONTESPIZIO
+% ------------------------------------------------------------
+\input{frontespizio/cover}
+
+% ------------------------------------------------------------
+% SOMMARIO
+% ------------------------------------------------------------
+\begin{abstract}
+\noindent
+Il presente progetto affronta la progettazione e l'implementazione di un database relazionale
+per la gestione di una catena di supermercati (\textit{SuperMarket Chain}).
+L'elaborato descrive l'analisi dei requisiti, la progettazione concettuale tramite schema E/R,
+la traduzione al modello relazionale, la normalizzazione e l'implementazione fisica in PostgreSQL.
+Vengono inoltre presentate le principali query SQL per l'interrogazione e la gestione dei dati,
+corredati di pseudocodice per gli algoritmi applicativi rilevanti.
+\end{abstract}
+
+\newpage
+
+% ------------------------------------------------------------
+% INDICE GENERALE
+% ------------------------------------------------------------
+\tableofcontents
+\newpage
+
+\listoffigures
+\listoftables
+\newpage
+
+% ============================================================
+% SEZIONE 0 — INTRODUZIONE
+% ============================================================
+\section*{Introduzione}
+\addcontentsline{toc}{section}{Introduzione}
+
+Il progetto ha come obiettivo la realizzazione di un sistema di gestione dati per una catena
+di supermercati distribuita su più sedi. Il sistema deve supportare la gestione di prodotti,
+fornitori, dipendenti, clienti, ordini e inventario, garantendo integrità referenziale
+e performance adeguate ai volumi operativi tipici della grande distribuzione organizzata (GDO).
+
+\newpage
+
+% ============================================================
+% SEZIONE 1 — ANALISI DEI REQUISITI
+% ============================================================
+\section{Analisi dei Requisiti}
+\minitoc
+\vspace{1cm}
+
+\subsection{Descrizione del dominio applicativo}
+
+% TODO: Descrivere il dominio (catena supermercati, sedi, prodotti, ecc.)
+
+\subsection{Requisiti funzionali}
+
+% TODO: Elencare i requisiti funzionali del sistema
+
+\subsection{Requisiti non funzionali}
+
+% TODO: Performance, disponibilità, sicurezza, scalabilità
+
+\newpage
+
+% ============================================================
+% SEZIONE 2 — PROGETTAZIONE CONCETTUALE (SCHEMA E/R)
+% ============================================================
+\section{Progettazione Concettuale}
+\minitoc
+\vspace{1cm}
+
+\subsection{Schema Entità-Relazione}
+
+% Inserire qui il diagramma E/R come immagine:
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=\textwidth]{immagini/schema-er.pdf}
+%     \caption{Schema Entità-Relazione del database SuperMarket Chain.}
+%     \label{fig:schema-er}
+% \end{figure}
+
+\subsection{Dizionario dei dati}
+
+\subsubsection{Entità principali}
+
+% TODO: tabella con entità, attributi, chiavi
+
+\subsubsection{Relazioni principali}
+
+% TODO: tabella con relazioni, cardinalità, partecipazioni
+
+\newpage
+
+% ============================================================
+% SEZIONE 3 — PROGETTAZIONE LOGICA (MODELLO RELAZIONALE)
+% ============================================================
+\section{Progettazione Logica}
+\minitoc
+\vspace{1cm}
+
+\subsection{Traduzione E/R $\rightarrow$ Relazionale}
+
+% TODO: Schemi relazionali con chiavi primarie sottolineate e FK indicate
+
+\subsection{Normalizzazione}
+
+% TODO: verifica 1NF, 2NF, 3NF / BCNF
+
+\newpage
+
+% ============================================================
+% SEZIONE 4 — IMPLEMENTAZIONE FISICA (PostgreSQL)
+% ============================================================
+\section{Implementazione Fisica in PostgreSQL}
+\minitoc
+\vspace{1cm}
+
+\subsection{Creazione delle tabelle}
+
+% Esempio di listato SQL:
+% \begin{lstlisting}[caption={Creazione tabella PRODOTTO.}, label={lst:create-prodotto}]
+% CREATE TABLE Prodotto (
+%     codice_prodotto  SERIAL       PRIMARY KEY,
+%     nome             VARCHAR(100) NOT NULL,
+%     categoria        VARCHAR(50),
+%     prezzo_unitario  NUMERIC(8,2) NOT NULL CHECK (prezzo_unitario >= 0),
+%     codice_fornitore INTEGER      REFERENCES Fornitore(codice_fornitore)
+% );
+% \end{lstlisting}
+
+\subsection{Vincoli e trigger}
+
+% TODO: trigger di integrità, vincoli CHECK, DEFAULT
+
+\subsection{Indici e ottimizzazione}
+
+% TODO: indici B-Tree, ottimizzazione query
+
+\newpage
+
+% ============================================================
+% SEZIONE 5 — QUERY SQL PRINCIPALI
+% ============================================================
+\section{Query SQL Principali}
+\minitoc
+\vspace{1cm}
+
+\subsection{Interrogazioni di base}
+
+% TODO: SELECT, JOIN, WHERE di base
+
+\subsection{Interrogazioni avanzate}
+
+% TODO: aggregazioni, subquery, window functions, CTE
+
+\newpage
+
+% ============================================================
+% SEZIONE 6 — ALGORITMI E PSEUDOCODICE
+% ============================================================
+\section{Algoritmi Applicativi e Pseudocodice}
+\minitoc
+\vspace{1cm}
+
+% ------------------------------------------------------------
+% ESEMPIO 1: Algoritmo di rifornimento automatico
+% ------------------------------------------------------------
+\subsection{Rifornimento Automatico dell'Inventario}
+
+L'algoritmo di rifornimento monitora le scorte di ogni prodotto per sede e genera
+automaticamente un ordine di rifornimento quando la giacenza scende sotto la soglia minima.
+
+\begin{algorithm}[H]
+\caption{Rifornimento Automatico Inventario}
+\label{alg:rifornimento}
+\begin{algorithmic}[1]
+\Require Lista delle sedi $S$, soglia minima $\theta$, quantità di riordino $Q_r$
+\Ensure Ordini di rifornimento generati per tutti i prodotti sotto soglia
+
+\ForAll{$s \in S$} \Comment{Per ogni sede della catena}
+    \ForAll{prodotto $p$ in $s$}
+        \State $q \gets$ \Call{GetGiacenza}{$s$, $p$}
+        \If{$q < \theta_p$}
+            \State $\text{ord} \gets$ \Call{CreaOrdine}{$s$, $p$, $Q_r$}
+            \State \Call{InviaAlFornitore}{$\text{ord}$, $p.\text{fornitore}$}
+            \State \Call{LogOrdine}{$\text{ord}$}
+        \EndIf
+    \EndFor
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+% ------------------------------------------------------------
+% ESEMPIO 2: Ricerca del fornitore ottimale
+% ------------------------------------------------------------
+\subsection{Selezione del Fornitore Ottimale}
+
+Data una richiesta di approvvigionamento per un prodotto, l'algoritmo seleziona il fornitore
+che minimizza il costo totale (prezzo unitario + costo di trasporto).
+
+\begin{algorithm}[H]
+\caption{Selezione Fornitore a Costo Minimo}
+\label{alg:fornitore}
+\begin{algorithmic}[1]
+\Require Prodotto $p$, quantità richiesta $q$, insieme fornitori $F_p$
+\Ensure Fornitore ottimale $f^*$
+
+\State $c_{\min} \gets +\infty$
+\State $f^* \gets \textbf{null}$
+\ForAll{$f \in F_p$}
+    \State $c_f \gets f.\text{prezzoUnitario} \times q + f.\text{costoTrasporto}$
+    \If{$c_f < c_{\min}$}
+        \State $c_{\min} \gets c_f$
+        \State $f^* \gets f$
+    \EndIf
+\EndFor
+\State \Return $f^*$
+\end{algorithmic}
+\end{algorithm}
+
+% ------------------------------------------------------------
+% ESEMPIO 3: Calcolo del totale di uno scontrino (cassa)
+% ------------------------------------------------------------
+\subsection{Calcolo Totale Scontrino}
+
+\begin{algorithm}[H]
+\caption{Calcolo Totale Scontrino con Sconti}
+\label{alg:scontrino}
+\begin{algorithmic}[1]
+\Require Lista articoli $A = \{(p_i, q_i)\}$, cliente $c$
+\Ensure Totale da pagare $T$
+
+\State $T \gets 0$
+\ForAll{$(p_i, q_i) \in A$}
+    \State $\text{prezzo} \gets p_i.\text{prezzoUnitario} \times q_i$
+    \If{\Call{IsInPromozione}{$p_i$}}
+        \State $\text{prezzo} \gets \text{prezzo} \times (1 - p_i.\text{sconto})$
+    \EndIf
+    \State $T \gets T + \text{prezzo}$
+\EndFor
+\If{\Call{IsFidelityCard}{$c$}}
+    \State $T \gets T \times (1 - \text{SCONTO\_FIDELITY})$
+\EndIf
+\State \Return $\Call{Round}{T, 2}$
+\end{algorithmic}
+\end{algorithm}
+
+\newpage
+
+% ============================================================
+% SEZIONE 7 — CONCLUSIONI
+% ============================================================
+\section*{Conclusioni}
+\addcontentsline{toc}{section}{Conclusioni}
+
+% TODO: Sintesi dei risultati, limitazioni, sviluppi futuri
+
+\newpage
+
+% ============================================================
+% APPENDICE
+% ============================================================
+\appendix
+\section{Script SQL Completo}
+
+% TODO: script DDL completo
+
+\section{Dati di Test}
+
+% TODO: script di popolamento (INSERT)
+
+\newpage
+
+% ============================================================
+% BIBLIOGRAFIA
+% ============================================================
+\bibliography{bibliografia}
+
+\end{document}
